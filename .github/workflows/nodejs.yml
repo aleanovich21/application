@@ -11,7 +11,7 @@ on:
 jobs:
   main:
     runs-on: ubuntu-latest
-    environment: secrets
+    environment: docker_secret
     steps:
 # Clone main repository
       - uses: actions/checkout@v2
