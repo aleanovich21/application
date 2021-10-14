@@ -1,0 +1,59 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches:
+      - main
+  create:
+    tags:
+      - '*'
+
+jobs:
+  main:
+    runs-on: ubuntu-latest
+    environment: secrets
+    steps:
+# Clone main repository
+      - uses: actions/checkout@v2
+# Clone repository with scripts
+      - uses: actions/checkout@v2
+        with:
+          repository: aleanovich21/scripts
+          token: ${{ secrets.ACCESS_TOKEN }}
+          path: scripts
+# Getting variables from pipline_conf
+      - name: Get secrets
+        run: |
+          ./pars.sh
+# Creating hash and branch version name if we did push to main branch
+      - name: Application version
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          ./app_version.sh
+# Creating tag version name if we created tag
+      - name: Tag version
+        if: ${{ github.event_name == 'create' }}
+        run: |
+          ./tag_version.sh
+# Build docker image
+      - name: docker build Dockerfile
+        run: |
+          echo "---BUILD IMAGE DOCKER---"
+          ./scripts/build.sh
+# Login to DockerHub
+      - uses: docker/login-action@v1
+        with:
+          username: ${{secrets.DOCKERHUB_USERNAME}}
+          password: ${{secrets.DOCKERHUB_TOKEN}}
+# Push image to the repository
+      - name: docker push
+        run: |
+          echo "---PUSH IMAGE TO DOCKERHUB---"
+          ./scripts/push.sh
+# Pull and deploy image 
+      - name: docker pull and deploy
+        run: |
+          echo "---PULL IMAGE FROM DOCKERHUB---"
+          ./scripts/pull.sh
+          chmod 755 ./scripts/run.sh
+          ./scripts/run.sh
